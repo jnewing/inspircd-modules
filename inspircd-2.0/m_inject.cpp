@@ -1,31 +1,34 @@
 /**
  * m_inject.cpp
  *
- * really basic cut & dry module that allows opers to inject a command as any user on the network.
+ * Really basic cut & dry module that allows opers to inject a command as any user on the network.
  * please make it noted that this is not my module it was originally written by Chernov-Phoenix Alexey this is simply my re-working to
  * make it function on 2.x
  *
- * the reason I re-wrote it was we upgraded to InspIRCd 2.x here at work and we used to use this module and wanted it to live again!
+ * The reason I re-wrote it was we upgraded to InspIRCd 2.x here at work and we used to use this module and wanted it to live again!
  *
- * usage: /INJECT <user> <command>
- * example: /inject synmuffin PRIVMSG #somechannel :foo bar (this would make the user synmuffin send the message "foo bar" to the channel #somechannel
+ * Usage: /INJECT <user> <command>
+ * Example: /inject synmuffin PRIVMSG #somechannel :foo bar (this would make the user synmuffin send the message "foo bar" to the channel #somechannel
  *
- * don't be stupid with this module... nuf said I'm not your mum.
- *
- * author: j. newing (synmuffin)
- * email: jnewing@gmail.com
- * url: http://epicgeeks.net
+ * Don't be stupid with this module... nuf said I'm not your mum.
  *
  */
 
+/* $ModDesc: Inject a command as any user on the network */
+/* $ModAuthor: Joseph Newing (synmuffin) */
+/* $ModAuthorMail: jnewing@gmail.com */
+/* $ModDepends: core 2.0 */
+
 #include "inspircd.h"
 
-class CommandInject : public Command {
- public:
-	
+class CommandInject : public Command
+{
+
+public:
+
 	CommandInject(Module* Creator) : Command(Creator, "INJECT", 2)
 	{
-		flags_needed = 'o';		
+		flags_needed = 'o';
 		Penalty = 3;
 		syntax = "<nick> <cmd>";
 	}
@@ -34,9 +37,9 @@ class CommandInject : public Command {
 	{
 		User* u;
 		std::string command;
-		
+
 		u = ServerInstance->FindNick(parameters[0]);
-		
+
 		if (u)
 		{
 			for (int x = 1; x < (int)parameters.size(); x++)
@@ -47,9 +50,17 @@ class CommandInject : public Command {
 				command.append(parameters[x]);
 			}
 
-			ServerInstance->SNO->WriteToSnoMask('A', "%s INJECTed the command: '%s' as user: %s", user->nick.c_str(), command.c_str(), u->nick.c_str());
+			if (IS_LOCAL(u)) // thanks miniCruzer
+			{
+                ServerInstance->SNO->WriteToSnoMask('a', "%s INJECTed the command: '%s' as user: %s", user->nick.c_str(), command.c_str(), u->nick.c_str());
+            }
+			else
+            {
+				ServerInstance->SNO->WriteToSnoMask('A', "%s INJECTed the command: '%s' as user: %s", user->nick.c_str(), command.c_str(), u->nick.c_str());
+            }
+
 			ServerInstance->Parser->ProcessBuffer(command, (LocalUser*)u);
-                	
+
 			return CMD_SUCCESS;
 		}
 
@@ -58,13 +69,17 @@ class CommandInject : public Command {
 
 };
 
-class ModuleInject : public Module {
- private:
+class ModuleInject : public Module
+{
+
+private:
+
 	CommandInject cmd;
 
- public:
+public:
+
 	ModuleInject() : cmd(this) {}
-	
+
 	void init()
 	{
 		ServerInstance->Modules->AddService(cmd);
